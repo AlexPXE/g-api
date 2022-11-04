@@ -13,13 +13,13 @@ const
     __direname = path.dirname(__filename)
 ;
 
-async function startServer(serverURLStr) {
+async function startServer(serverURLStr, dbPath = './db/db.json') {
     
     const
         serverURL = new URL(serverURLStr),
         dbCache = new Map(
             JSON.parse(
-                await fs.readFile('./app/db/db.json', 'utf8')
+                await fs.readFile(dbPath, 'utf8')
             )
         ),
 
@@ -33,6 +33,53 @@ async function startServer(serverURLStr) {
                         'Content-Type': "text/html",
                     });
                     resp.write(`<div>${sParams.get('code')}</div>`);
+                }
+            ],
+            [
+                '/backup',
+                async (req, resp, method, sParams) => {
+                    let 
+                        status = 404,
+                        receivedData = '',
+                        message = 'Data fetch error'
+                    ;
+
+                    if (method === 'POST') {
+                        for await (let chank of req) {
+                            receivedData += chank;
+                        }
+
+                        const data = JSON.parse(receivedData);
+
+                        dataCache.set(data.name, data);
+                        eventEmitter.emit('backup', [...dataCache]);
+
+                        status = 200;
+                        message = `Data named '${data.name}' received`;
+                    }
+
+                    console.log(message);
+                    resp.writeHead(status, {                        
+                        'Access-Control-Allow-Origin': '*'
+                    });
+                }
+            ],
+            [
+                '/restore',
+                async (req, resp, method, sParams) => {
+                    
+                    const data = dataCache.get( sParams.get('name') );
+
+                    if (method === 'GET' && data !== undefined) {
+                        resp.writeHead(200, {           
+                            'Content-Type': "application/json",
+                            'Access-Control-Allow-Origin': '*'
+                        });
+                        
+                        resp.write( JSON.stringify(data) );
+                    } else {
+                        resp.writeHead(404);
+                    }
                 }
             ],
             [
