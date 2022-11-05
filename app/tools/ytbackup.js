@@ -5,7 +5,6 @@ import {
     YTubeSubscr,    
     
 } from '../index.js';
-import { options } from '../options.js';
 
 /**
 * 

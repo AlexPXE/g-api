@@ -1,3 +1,8 @@
+"use strict";
+
+export { 
+    Peformer
+} from '../../libs.js';
 export { startServer } from './server/server.js';
 export {
     YTubePl,
@@ -5,6 +10,6 @@ export {
     YTubeSubscr,
     YTubeSections,
     YouTubeAPI
-} from './gapi/yt.js';
+} from '../../libs.js';
 export { ytBackup } from './tools/ytbackup.js';
 export { ytRestore } from './tools/ytrestore.js';

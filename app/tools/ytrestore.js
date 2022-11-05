@@ -18,3 +18,5 @@ import {
 function ytRestore(params) {
     throw new Error("Not implemented!");
 }
+
+export {ytRestore}
