@@ -9,6 +9,7 @@ export const options = {
             'https://www.googleapis.com/auth/youtube.force-ssl'
         ],
         tokenDir: "C:\\Users\\Nav\\.credentials\\",
-        tokenFN: "yt.json"
+        tokenFN: "yt.json",
+        clientSecretDir: './'
     }
 }

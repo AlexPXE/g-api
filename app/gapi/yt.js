@@ -1,7 +1,4 @@
 import { YouTubeAPI } from "./ytapi.js";
-
-
-
 class YTubePl extends YouTubeAPI {
     
     constructor(params) {
@@ -28,6 +25,7 @@ class YTubePl extends YouTubeAPI {
 
         return await this.exec('playlists', 'list', options);
     }
+
     /**
      * 
      * @param {string} title Playlist title
@@ -53,6 +51,7 @@ class YTubePl extends YouTubeAPI {
 
         return await this.exec('playlists', 'insert', options);
     }
+
     /**
      * 
      * @param {string} id Playlist id
@@ -71,6 +70,7 @@ class YTubePlItems extends YouTubeAPI {
     constructor(params) {
         super(params)
     }
+
     /**
      * 
      * @param {string} playlistId 
@@ -82,13 +82,14 @@ class YTubePlItems extends YouTubeAPI {
         }
 
         const options = {
-            part: "snippet",
+            part: "snippet,contentDetails,status",
             maxResults: 50,
             playlistId
         };
 
         return await this.exec('playlistItems', 'list', options);
     }
+
     /**
      * 
      * @param {string} playlistId 
@@ -115,6 +116,7 @@ class YTubePlItems extends YouTubeAPI {
 
         return await this.exec('playlistItems', 'insert', options);
     }
+
     /**
      * 
      * @param {string} id The id parameter specifies the YouTube playlist item ID for the playlist item that is being deleted. 
@@ -135,6 +137,7 @@ class YTubeSubscr extends YouTubeAPI {
     constructor(params) {
         super(params);
     }
+
     /**
      * 
      * @param {boolean} mine This parameter can only be used in a properly authorized request. 
@@ -146,6 +149,7 @@ class YTubeSubscr extends YouTubeAPI {
         
         const options = {
             part: "snippet,contentDetails",
+            maxResults: 50
         };
 
         if (arguments.length > 1) {
@@ -157,6 +161,12 @@ class YTubeSubscr extends YouTubeAPI {
         return this.exec('subscriptions', 'list', options);
     }
 
+    /**
+     * 
+     * @param {string} channelId The ID that YouTube uses to uniquely identify the subscriber's channel. 
+     * The resource_id object identifies the channel that the user subscribed to.     
+     * @returns {object}
+     */
     async insert(channelId = '') {
         if (channelId === '') {
             throw new Error("You must specify an 'channelId' parametr");
@@ -177,6 +187,12 @@ class YTubeSubscr extends YouTubeAPI {
         return this.exec('subscriptions', 'insert', options);
     }
 
+    /**
+     * 
+     * @param {string} id The id parameter specifies the YouTube subscription ID for the resource that is being deleted. 
+     * In a subscription resource, the id property specifies the YouTube subscription ID.
+     * @returns {object}
+     */
     async delete(id = '') {
         if (id === '') {
             throw new Error("You must specify an 'Id' parametr");
@@ -188,8 +204,47 @@ class YTubeSubscr extends YouTubeAPI {
     }
 }
 
+class YTubeSections extends YouTubeAPI {
+    constructor(params) {
+        super(params);
+    }
+
+    async list(mine = true, channelId) {
+
+        const options = {
+            part: "snippet,contentDetails"
+        };
+
+        if (arguments.length > 1) {
+            options.channelId = channelId;
+        } else {
+            options.mine = mine
+        }
+        
+        return this.exec('channelSections', 'list', options);
+    }
+
+    //IMPLEMENT
+    /**
+     * Not implemented
+     */
+    async insert() {
+        throw new Error("Not implemented!");
+    }
+
+    //IMPLEMENT
+    /**
+     * Not implemented
+     */
+    async delete() {
+        throw new Error("Not implemented!");
+    }
+}
+
 export {
     YTubePl,
     YTubePlItems,
-    YTubeSubscr
+    YTubeSubscr,
+    YTubeSections,
+    YouTubeAPI
 }

@@ -3,15 +3,15 @@ import * as fs from 'fs/promises';
 import * as readline from 'node:readline/promises';
 import { google } from 'googleapis';
 
-
 class YouTubeAPI {
 	
 	clientSecret;
 	oauth2Client;
-	scopes = '';
+	scopes = [];
 	tokenDir = '';
 	tokenFN = '';
-	clientSecretFN = 'client_secret.json';
+	clientSecretDir = '';
+	clientSecretFN = '';
 	service = google.youtube('v3');
 	
 	/**
@@ -25,19 +25,22 @@ class YouTubeAPI {
 		scopes = [],
 		tokenDir = '',
 		tokenFN = 'yt.json',
+		clientSecretDir = '',
+		clientSecretFN = 'client_secret.json'
 	} = {}) {
 		
-		this.scopes = scopes;
-		this.tokenFN = tokenFN;
+		this.scopes = scopes;		
 		this.tokenDir = tokenDir;
+		this.tokenFN = tokenFN;
+		this.clientSecretDir = clientSecretDir;
+		this.clientSecretFN = clientSecretFN;
 	}
 
 	async setClientSecrets() {
 		try {
 			this.clientSecret = JSON.parse(
-				await fs.readFile(this.clientSecretFN, 'utf-8')
-			).web;
-			
+				await fs.readFile(this.clientSecretDir + this.clientSecretFN, 'utf-8')
+			).web;			
 			
 		} catch(e) {
 			console.log('Error loading client secret file: ' + e);			
@@ -143,112 +146,6 @@ class YouTubeAPI {
 		}
 	}
 }
-
-async function insPl() {
-	const api = new YouTubeAPI();
-
-	const data = await api.exec('playlists', 'insert', {
-		part: "snippet,status",
-		resource: {
-			snippet: {
-				title: "TEST"
-			}			
-		},
-		status: {
-			privacyStatus : "private"
-		}
-	});
-
-	console.log(data);
-}
-
-async function delPl() {
-	const api = new YouTubeAPI();
-
-	const data = await api.exec('playlists', 'delete', {
-		"id": "PLnIgY94VK258gVAqnFqkwE0a1CVRcfE9C"
-	});
-
-	console.log(data);
-}
-
-async function addIt() {
-	const api = new YouTubeAPI();
-
-	const data = await api.exec('playlistItems', 'insert', {
-		part: "snippet",
-		"resource": {
-			"snippet": {
-				playlistId: "PLnIgY94VK25_ZiHbgBc0n5zZNEF2AwEkJ",
-				resourceId : {
-					kind: "youtube#video",
-					videoId: "mBL_nPM6I1o"
-				}
-			}
-		}
-	});
-
-	console.log(data);
-}
-
-async function getPlIt() {
-	const api = new YouTubeAPI();
-
-	const data = await api.exec('playlistItems', 'list', {
-		part: "snippet",
-		maxResults: 25,
-		playlistId: "PLnIgY94VK259M2MdBb1tugtjwdfn6H-dJ"
-	});
-
-	console.log(data.items);
-}
-
-async function getPls() {
-	const api = new YouTubeAPI({
-		scopes: [
-			'https://www.googleapis.com/auth/youtube.readonly', 
-            'https://www.googleapis.com/auth/youtube.force-ssl'
-		],
-		tokenDir: "C:\\Users\\Nav\\.credentials\\",
-		tokenFN: "yt.json"	
-	});
-
-	const data = await api.exec('playlists', 'list', {
-		part: "snippet,contentDetails",
-		maxResults: 40,
-		channelId: "UC3VTJri71e2NSbe0jVkv1MQ"
-		
-	});
-
-	console.log(data.items);
-}
-
-async function getSections() {
-	const api = new YouTubeAPI({
-		scopes: [
-			'https://www.googleapis.com/auth/youtube.readonly', 
-            'https://www.googleapis.com/auth/youtube.force-ssl'
-		],
-		tokenDir: "C:\\Users\\Nav\\.credentials\\",
-		tokenFN: "yt.json"	
-	});
-
-	const data = await api.exec('channelSections', 'list', {
-		"part": [
-		  "snippet,contentDetails"
-		],		
-		"mine": true
-	});
-
-	console.log(data.items, data.items[0]);
-}
-
-
-getSections();
-
-
-
-
 
 export {
 	YouTubeAPI
