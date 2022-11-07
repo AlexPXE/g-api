@@ -6,6 +6,7 @@ import { EventEmitter } from 'node:events';
 import * as fs from 'fs/promises';;
 import http from 'http';
 import { URL } from 'node:url';
+import { loggerBuilder } from '../index.js';
 
 
 const
@@ -14,6 +15,7 @@ const
 ;
 
 async function startServer(serverURLStr, dbPath = './db/db.json') {
+    const msg = loggerBuilder.create("Server");
     
     const
         serverURL = new URL(serverURLStr),
@@ -51,8 +53,8 @@ async function startServer(serverURLStr, dbPath = './db/db.json') {
 
                         const data = JSON.parse(receivedData);
 
-                        dataCache.set(data.name, data);
-                        eventEmitter.emit('backup', [...dataCache]);
+                        dbCache.set(data.name, data);
+                        eventEmitter.emit('backup', [...dbCache]);
 
                         status = 200;
                         message = `Data named '${data.name}' received`;
@@ -68,7 +70,7 @@ async function startServer(serverURLStr, dbPath = './db/db.json') {
                 '/restore',
                 async (req, resp, method, sParams) => {
                     
-                    const data = dataCache.get( sParams.get('name') );
+                    const data = dbCache.get( sParams.get('name') );
 
                     if (method === 'GET' && data !== undefined) {
                         resp.writeHead(200, {           
@@ -106,14 +108,21 @@ async function startServer(serverURLStr, dbPath = './db/db.json') {
 
     eventEmitter.on('backup', async (data) => {
         await fs.writeFile(
-            path.join(__direname, 'data.json'),
+            dbPath,
             JSON.stringify(data, null, 4)
         );
     });
     
-    server.listen(serverURL.port, serverURL.hostname, () => {
-        console.log(`Server started successfully. URL: ${serverURL}`);
-    });
+    try {
+        server.listen(serverURL.port, serverURL.hostname, () => {
+            msg.info(`Server started successfully. URL: ${serverURL}`);
+        });
+
+    } catch(e) {
+        msg.warn("The server has not been started.");
+        msg.mute().err(e.message).unmute();
+    }
+    
 
     function routerFactory(serverURL, routes) {
         return async (req, resp) => {            

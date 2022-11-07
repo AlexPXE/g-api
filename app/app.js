@@ -1,14 +1,5 @@
-import { startServer } from '/index.js';
-import { ytBackup } from './index.js';
-import { options } from './options.js';
+import { exec } from './exec/exec.js';
 
-( ([nodePath, scriptPath, port = options.server.port]) => {
-    const sUrl = `http://localhost:${port}`;
-
-    try {
-        startServer(sUrl);
-    } catch(e) {
-        console.log(e.message);
-        return;
-    }
+( async ([nodePath, scriptPath, command, ...options]) => {
+    await exec.execute(command, options);
 })(process.argv)

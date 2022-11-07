@@ -23,7 +23,7 @@
             plItems: '#container .playlist-items.style-scope.ytd-playlist-panel-renderer a#wc-endpoint.yt-simple-endpoint.style-scope.ytd-playlist-panel-video-renderer',
             savedPls: 'ytd-browse a[href^="/playlist?list="]',
             POST: {
-                url: serverURL + "/backup",                
+                url: serverURL + "/backup",  
             },
             GET: {
                 url: serverURL + '/restore?name=',    
@@ -134,7 +134,7 @@
 
                 const
                     a = d.querySelectorAll(options.savedPls),
-                    ids = []
+                    items = []
                 ;
 
                 if (a.length === 0) {
@@ -143,10 +143,10 @@
                 }
 
                 for(let {href} of a) {  
-                    ids.push( new URL(href).searchParams.get('list') );
+                    items.push( new URL(href).searchParams.get('list') );
                 }
                 
-                await sendData(options.POST.url, "saved playlists", ids);
+                await sendData(options.POST.url, "saved playlists", items);
             }
         });
 
@@ -245,7 +245,7 @@
                     method: "POST",
                     body: JSON.stringify({
                         name,
-                        data
+                        items: data
                     }),
                     headers: {
                         'Content-Type': 'application/json'
