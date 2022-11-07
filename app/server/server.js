@@ -6,6 +6,7 @@ import { EventEmitter } from 'node:events';
 import * as fs from 'fs/promises';;
 import http from 'http';
 import { URL } from 'node:url';
+import { loggerBuilder } from '../index.js';
 
 
 const
@@ -13,13 +14,14 @@ const
     __direname = path.dirname(__filename)
 ;
 
-async function startServer(serverURLStr) {
+async function startServer(serverURLStr, dbPath = './db/db.json') {
+    const msg = loggerBuilder.create("Server");
     
     const
         serverURL = new URL(serverURLStr),
         dbCache = new Map(
             JSON.parse(
-                await fs.readFile('./app/db/db.json', 'utf8')
+                await fs.readFile(dbPath, 'utf8')
             )
         ),
 
@@ -33,6 +35,53 @@ async function startServer(serverURLStr) {
                         'Content-Type': "text/html",
                     });
                     resp.write(`<div>${sParams.get('code')}</div>`);
+                }
+            ],
+            [
+                '/backup',
+                async (req, resp, method, sParams) => {
+                    let 
+                        status = 404,
+                        receivedData = '',
+                        message = 'Data fetch error'
+                    ;
+
+                    if (method === 'POST') {
+                        for await (let chank of req) {
+                            receivedData += chank;
+                        }
+
+                        const data = JSON.parse(receivedData);
+
+                        dbCache.set(data.name, data);
+                        eventEmitter.emit('backup', [...dbCache]);
+
+                        status = 200;
+                        message = `Data named '${data.name}' received`;
+                    }
+
+                    console.log(message);
+                    resp.writeHead(status, {                        
+                        'Access-Control-Allow-Origin': '*'
+                    });
+                }
+            ],
+            [
+                '/restore',
+                async (req, resp, method, sParams) => {
+                    
+                    const data = dbCache.get( sParams.get('name') );
+
+                    if (method === 'GET' && data !== undefined) {
+                        resp.writeHead(200, {           
+                            'Content-Type': "application/json",
+                            'Access-Control-Allow-Origin': '*'
+                        });
+                        
+                        resp.write( JSON.stringify(data) );
+                    } else {
+                        resp.writeHead(404);
+                    }
                 }
             ],
             [
@@ -59,14 +108,21 @@ async function startServer(serverURLStr) {
 
     eventEmitter.on('backup', async (data) => {
         await fs.writeFile(
-            path.join(__direname, 'data.json'),
+            dbPath,
             JSON.stringify(data, null, 4)
         );
     });
     
-    server.listen(serverURL.port, serverURL.hostname, () => {
-        console.log(`Server started successfully. URL: ${serverURL}`);
-    });
+    try {
+        server.listen(serverURL.port, serverURL.hostname, () => {
+            msg.info(`Server started successfully. URL: ${serverURL}`);
+        });
+
+    } catch(e) {
+        msg.warn("The server has not been started.");
+        msg.mute().err(e.message).unmute();
+    }
+    
 
     function routerFactory(serverURL, routes) {
         return async (req, resp) => {            
