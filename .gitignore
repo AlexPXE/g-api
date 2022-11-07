@@ -27,4 +27,5 @@ yarn-error.log*
 
 client_secret.json
 ytapitempl.js
+app/db/db.json
 
