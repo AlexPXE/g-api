@@ -6,8 +6,6 @@ import {
     
 } from '../index.js';
 
-
-//IMPLEMENT
 /**
 * 
 * @param {Object} [params] 
