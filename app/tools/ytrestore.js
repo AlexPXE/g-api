@@ -22,13 +22,13 @@ async function ytRestore(params, dbPath) {
             JSON.parse(
                 await fs.readFile(dbPath, 'utf-8')
             )
-        )        
+        )
     ;
 
-    for ( let {title, privacyStatus, items} of db.get("playlists") ) {
-        const { id: playlistId } = await pl.insert(title, privacyStatus);
+    for ( const {title, privacyStatus, items, description} of db.get("playlists") ) {
+        const { id: playlistId } = await pl.insert(title, privacyStatus, description);
 
-        for(let videoId of items) {
+        for(const videoId of items) {
             await plItems.insert(playlistId, videoId);
         }
     }
