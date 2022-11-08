@@ -19,6 +19,7 @@ async function startServer(serverURLStr, dbPath = './db/db.json') {
     
     const
         serverURL = new URL(serverURLStr),
+        
         dbCache = new Map(
             JSON.parse(
                 await fs.readFile(dbPath, 'utf8')

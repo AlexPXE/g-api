@@ -2,7 +2,8 @@ import * as fs from 'fs/promises';
 import { 
     YTubePl, 
     YTubePlItems, 
-    YTubeSubscr,    
+    YTubeSubscr,
+    options  
     
 } from '../index.js';
 
@@ -24,25 +25,32 @@ async function ytBackup(params, dbPath) {
             )
         ),
         playlists = []
-    ;
-    
-    
+    ;    
 
-    for (let item of ( await pl.list() ).items ) {
-        
-        const {
-            id,
-            status: { privacyStatus },
-            snippet: { title }
-        } = item;
-
-        playlists.push({
-            title,
-            privacyStatus,
-            items: ( await plItems.list(id) ).items.map(
-                ( { contentDetails : { videoId } } ) => videoId
-            )
-        });
+    for (let {items} of await pl.list() ) {        
+        for (let item of items) {
+            const {
+                id,
+                status: { privacyStatus },
+                snippet: { title, description }
+            } = item;
+    
+            playlists.push({
+                title,
+                description,
+                privacyStatus,
+                items: ( await plItems.list(id) ).reduce(
+                    (acc, {items}) => items.reduce(
+                        ( acc, {contentDetails: { videoId }} ) => {
+                          acc.push(videoId);
+                          return acc;
+                        },
+                        acc
+                    ),
+                    []
+                )                
+            });
+        }        
     }
 
     db.set(
@@ -50,8 +58,15 @@ async function ytBackup(params, dbPath) {
         playlists
     ).set(
         'subscriptions',
-        ( await subscr.list() ).items.map(
-            ({ snippet: {title, resourceId} }) => {return {...resourceId, title}}
+        ( await  subscr.list() ).reduce(
+            (acc, {items}) => items.reduce(
+                (acc, { snippet: {title, resourceId} }) => {
+                    acc.push({...resourceId, title});
+                    return acc;
+                },
+                acc
+            ),            
+            []
         )
     );    
     
