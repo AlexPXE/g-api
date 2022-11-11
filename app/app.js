@@ -1,5 +1,5 @@
-import { exec } from './exec/exec.js';
+import { runner } from './exec/exec.js';
 
 ( async ([nodePath, scriptPath, command, ...options]) => {
-    await exec.execute(command, options);
+    await runner.run(command, options);
 })(process.argv)

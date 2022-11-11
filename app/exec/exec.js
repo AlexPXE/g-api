@@ -1,7 +1,7 @@
 "use strict";
 
 import {
-    Peformer,
+    runnerFactory,
     options,
     startServer,
     ytBackup,
@@ -9,7 +9,7 @@ import {
 
 } from '../index.js';
 
-export const exec = new Peformer()
+export const runner = runnerFactory.runner("yt-backup")
     .set(
         "server",
         "Server start. server [portNumber]",
@@ -19,6 +19,7 @@ export const exec = new Peformer()
         "backup",
         "Get data (playlists, playlist items, subscriptions) and store them in the database.",
         async () => await ytBackup(options.ytAPI, options.dbPath)
+        
     ).set(
         "restore",
         "Restore data (playlists, playlist items, subscriptions)",

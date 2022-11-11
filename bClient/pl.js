@@ -194,7 +194,7 @@
     }
 
     function dragElement(elmnt) {
-        var pos1 = 0,
+        let pos1 = 0,
             pos2 = 0,
             pos3 = 0,
             pos4 = 0
@@ -205,12 +205,12 @@
         function dragMouseDown(e) {
             e = e || window.event;
             e.preventDefault();
-            // получить положение курсора мыши при запуске:
+            // get mouse cursor position when detected:
             pos3 = e.clientX;
             pos4 = e.clientY;
 
             document.addEventListener('mouseup', closeDragElement);
-            // вызов функции при каждом перемещении курсора:
+            // function call each time the cursor is moved:
             document.addEventListener('mousemove', elementDrag);            
         }
 
@@ -294,6 +294,5 @@
             wInfo.textContent = 'ERROR!';
             return {};
         }
-    }
-    // Your code here...
+    }    
 })();
