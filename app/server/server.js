@@ -1,12 +1,13 @@
 "use strict"
 
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { workerData, parentPort} from "worker_threads";
 import { EventEmitter } from 'node:events';
 import * as fs from 'fs/promises';;
 import http from 'http';
 import { URL } from 'node:url';
-import { loggerBuilder } from '../index.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { START_DIR } from "../index.js";
 
 
 const
@@ -14,20 +15,53 @@ const
     __direname = path.dirname(__filename)
 ;
 
-async function startServer(serverURLStr, dbPath = './db/db.json') {
-    const msg = loggerBuilder.create("Server");
+startServer(workerData);
+
+/**
+ * 
+ * @param {Object} options
+ * @param {string} options.serverUrl
+ * @param {string} options.dbPath
+ */
+async function startServer(serverUrl = path.join(START_DIR, "server/server.js")) {
     
     const
-        serverURL = new URL(serverURLStr),
+        sendMsg = {
+            log(typeMsg, msg) {
+                parentPort.postMessage({
+                    type: "log",
+                    data: {
+                        typeMsg,
+                        msg
+                    }
+                });                
+            },
+            data(data) {
+                parentPort.postMessage({
+                    type: "data",
+                    data
+                });
+            },
+            query(key) {                
+                return new Promise((res, rej) => {
+                    const tId = setTimeout(() => {
+                        rej("Main thread not responding.");
+                    }, 3000);
+
+                    parentPort.once("message", (data) => {
+                        clearInterval(tId);
+                        res(data);
+                    });
+
+                    parentPort.postMessage({
+                        type: "query",
+                        data: key
+                    });
+                });
+            }
+        },
+        serverURL = new URL(serverUrl),        
         
-        dbCache = new Map(
-            JSON.parse(
-                await fs.readFile(dbPath, 'utf8')
-            )
-        ),
-
-        eventEmitter = new EventEmitter(),
-
         routes = new Map([            
             [
                 '/oauth2callback',
@@ -43,8 +77,7 @@ async function startServer(serverURLStr, dbPath = './db/db.json') {
                 async (req, resp, method, sParams) => {
                     let 
                         status = 404,
-                        receivedData = '',
-                        message = 'Data fetch error'
+                        receivedData = ''                        
                     ;
 
                     if (method === 'POST') {
@@ -52,16 +85,10 @@ async function startServer(serverURLStr, dbPath = './db/db.json') {
                             receivedData += chank;
                         }
 
-                        const data = JSON.parse(receivedData);
-
-                        dbCache.set(data.name, data);
-                        eventEmitter.emit('backup', [...dbCache]);
-
-                        status = 200;
-                        message = `Data named '${data.name}' received`;
+                        sendMsg.data(receivedData);
+                        status = 200;                        
                     }
-
-                    console.log(message);
+                    
                     resp.writeHead(status, {                        
                         'Access-Control-Allow-Origin': '*'
                     });
@@ -70,18 +97,27 @@ async function startServer(serverURLStr, dbPath = './db/db.json') {
             [
                 '/restore',
                 async (req, resp, method, sParams) => {
-                    
-                    const data = dbCache.get( sParams.get('name') );
+                    try {
+                        if (method === 'GET') {
+                            const data = await sendMsg.query( sParams.get('name') );
 
-                    if (method === 'GET' && data !== undefined) {
-                        resp.writeHead(200, {           
-                            'Content-Type': "application/json",
-                            'Access-Control-Allow-Origin': '*'
-                        });
-                        
-                        resp.write( JSON.stringify(data) );
-                    } else {
-                        resp.writeHead(404);
+                            if (data !== undefined) {
+                                resp.writeHead(200, {           
+                                    'Content-Type': "application/json",
+                                    'Access-Control-Allow-Origin': '*'
+                                });
+                                
+                                resp.write( JSON.stringify(data) );
+                            } else {
+                                throw new Error("Data not found.");
+                            }
+
+                        } else {
+                            throw new Error(`Method ${method} not supported.`);
+                        }
+
+                    } catch(e) {                        
+                        resp.writeHead(404, e.message);
                     }
                 }
             ],
@@ -102,28 +138,19 @@ async function startServer(serverURLStr, dbPath = './db/db.json') {
                     });
                 }
             ]
-        ]),
-
+        ]),        
         server = http.createServer( routerFactory(serverURL, routes) )
     ;
-
-    eventEmitter.on('backup', async (data) => {
-        await fs.writeFile(
-            dbPath,
-            JSON.stringify(data, null, 4)
-        );
-    });
     
     try {
         server.listen(serverURL.port, serverURL.hostname, () => {
-            msg.info(`Server started successfully. URL: ${serverURL}`);
+            sendMsg.log("info", `Server started successfully. URL: ${serverURL}`);            
         });
 
     } catch(e) {
-        msg.warn("The server has not been started.");
-        msg.mute().err(e.message).unmute();
-    }
-    
+        sendMsg.log("err", `The server has not been started. ${e}`);
+        process.exit(1);
+    }    
 
     function routerFactory(serverURL, routes) {
         return async (req, resp) => {            
@@ -139,7 +166,7 @@ async function startServer(serverURLStr, dbPath = './db/db.json') {
             ;
 
             //REMOVE IT
-            console.log(method, pathname);
+            sendMsg.log("info", `method: ${method} path: ${pathname}`);            
 
             if (method === 'OPTIONS') {
                 await routes.get('/')(req, resp, method);
@@ -147,15 +174,10 @@ async function startServer(serverURLStr, dbPath = './db/db.json') {
                 if ( routes.has(pathname) ) {
                     await routes.get(pathname)(req, resp, method, searchParams);
                 } else {
-                   resp.writeHead(404);
+                   resp.writeHead(404, "URL not found");
                 }
-            }
-            
+            }            
             resp.end();
         }
     }    
-}
-
-export {
-    startServer
 }

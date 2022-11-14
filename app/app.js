@@ -1,5 +1,5 @@
+"use strict";
 import { runner } from './exec/exec.js';
+import { options } from '../app-options.js';
 
-( async ([nodePath, scriptPath, command, ...options]) => {
-    await runner.run(command, options);
-})(process.argv)
+runner(options);
