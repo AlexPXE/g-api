@@ -8,7 +8,6 @@ import {
     START_DIR
 } from '../index.js';
 
-
 /**
  * 
  * @param {Object} options
@@ -113,7 +112,33 @@ function runner(options) {
             async ([path]) => {
                 await load(path);
             }
-        ) 
+
+        ).set(
+            "show",
+            "Show entries. show [all | key keyName]",
+            ([commOpt, ...keyName]) => {
+                if ( commOpt === "all") {
+                    cliRunner.logger({
+                        typeMsg: "info",
+                        msg: db.toJSON()
+                    });
+
+                } else if (commOpt === "key") {
+                    cliRunner.logger({
+                        typeMsg: "info",
+                        msg: JSON.stringify( db.get( keyName.join(' ') ), null, 4 )
+                    });
+
+                } else {
+                    cliRunner.logger({
+                        typeMsg: "warn",
+                        msg: `Invalid command parameter: "${commOpt}"`
+                    });
+
+                    cliRunner.run("help", ["show"]);
+                }
+            }
+        )
     ;
 
     cliRunner.start();

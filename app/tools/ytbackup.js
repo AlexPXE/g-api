@@ -158,7 +158,7 @@ class YTBackupFactory {
      * @returns {YTBackup}
      */
     create(options) {
-        return new this.YTBackup(this.ytServiceClasses, options);
+        return new this.YTBackup(options, this.ytServiceClasses);
     }
 }
 
@@ -166,7 +166,7 @@ const ytBackupFactory = new YTBackupFactory({
     Playlists: YTubePl,
     Plitems: YTubePlItems,
     Subscriptions: YTubeSubscr
-});
+}, YTBackup);
 
 export {
     YTBackup,
