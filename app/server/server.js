@@ -1,19 +1,10 @@
 "use strict"
 
-import { workerData, parentPort} from "worker_threads";
-import { EventEmitter } from 'node:events';
-import * as fs from 'fs/promises';;
+import { workerData, parentPort } from "worker_threads";
 import http from 'http';
 import { URL } from 'node:url';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { START_DIR } from "../index.js";
-
-
-const
-    __filename = fileURLToPath( import.meta.url),        
-    __direname = path.dirname(__filename)
-;
 
 startServer(workerData);
 

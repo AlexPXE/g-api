@@ -1,80 +1,175 @@
-import * as fs from 'fs/promises';
-import { 
-    YTubePl, 
-    YTubePlItems, 
-    YTubeSubscr,
-    options  
-    
-} from '../index.js';
+"use strict"
 
-/**
-* 
-* @param {Object} [params] 
-* @param {Array<string>} [params.scopes] example: `['https://www.googleapis.com/auth/youtube.readonly']`
-* @param {string} [params.tokenDir] example: `'C:\\Users\\userName\\.credentials\\'`
-* @param {string} [params.tokenFN] example: `'yt.json'`
-*/
-async function ytBackup(params, dbPath) {
-    const
-        pl = new YTubePl(params),
-        plItems = new YTubePlItems(params),
-        subscr = new YTubeSubscr(params),        
-        db = new Map(
-            JSON.parse(
-                await fs.readFile(dbPath, 'utf-8')
-            )
-        ),
-        playlists = []
-    ;    
+import {
+    YouTubeAPI,
+    YTubePl,
+    YTubePlItems,
+    YTubeSubscr
+} from "../index.js";
 
-    for (let {items} of await pl.list() ) {        
-        for (let item of items) {
-            const {
-                id,
-                status: { privacyStatus },
-                snippet: { title, description }
-            } = item;
-    
-            playlists.push({
-                title,
-                description,
-                privacyStatus,
-                items: ( await plItems.list(id) ).reduce(
-                    (acc, {items}) => items.reduce(
-                        ( acc, {contentDetails: { videoId }} ) => {
-                          acc.push(videoId);
-                          return acc;
-                        },
-                        acc
-                    ),
-                    []
-                )                
-            });
-        }        
+class YTBackup extends YouTubeAPI{
+    pl;
+    plItems;
+    subscr;    
+
+    /**
+     * 
+     * @param {object} options
+     * @param {Array<string>} options.scopes 
+     * example: 
+     * [
+     *  "https://www.googleapis.com/auth/youtube.readonly",
+     *  'https://www.googleapis.com/auth/youtube.force-ssl'
+     * ]
+     * @param {string} options.tokenDir The directory where the token should be stored
+     * @param {string} options.tokenFN Token file name
+     * @param {string} options.clientSecretDir The directory where the client_secret.json file is stored
+     * @param {object} ytServiceClasses
+     * @param {class} ytServiceClasses.Playlists
+     * @param {class} ytServiceClasses.Plitems
+     * @param {class} ytServiceClasses.Subscriptions     
+     */
+    constructor(options, ytServiceClasses) {
+        super(options);
+
+        this.pl = new ytServiceClasses.Playlists(this);
+        this.plItems = new ytServiceClasses.Plitems(this);
+        this.subscriptions = new ytServiceClasses.Subscriptions(this);        
     }
 
-    db.set(
-        'playlists',
-        playlists
-    ).set(
-        'subscriptions',
-        ( await  subscr.list() ).reduce(
-            (acc, {items}) => items.reduce(
-                (acc, { snippet: {title, resourceId} }) => {
-                    acc.push({...resourceId, title});
-                    return acc;
-                },
-                acc
-            ),            
-            []
-        )
-    );    
+    /**
+     * 
+     * @param {Object} [db]
+     * @param {function} db.set
+     * @param {function} db.get
+     * @returns {Promise<Object|Map>}
+     */
+    async restore(db = new Map()) {
+        const {
+            pl,
+            plItems,
+            subscr
+        } = this;
+
+        for ( const {title, privacyStatus, items, description} of db.get("playlists") ) {
+            const { id: playlistId } = await pl.insert(title, privacyStatus, description);
     
-    await fs.writeFile( 
-        dbPath, 
-        JSON.stringify( [...db], null, 4)
-    );
+            for(const videoId of items) {
+                await plItems.insert(playlistId, videoId);
+            }
+        }
+    
+        for( let {channelId} of db.get("subscriptions") ) {
+            await subscr.insert(channelId);
+        }
+
+        return db;
+    }
+
+    /**
+     * 
+     * @param {Object} [db]
+     * @param {function} db.set
+     * @param {function} db.get
+     * @returns {Promise<Object|Map>}
+     */
+    async backup(db = new Map()) {
+        const {
+            pl,
+            plItems,
+            subscr
+        } = this, data = [];        
+
+        for (let {items} of await pl.list() ) {        
+            for (let item of items) {
+                const {
+                    id,
+                    status: { privacyStatus },
+                    snippet: { title, description }
+                } = item;
+        
+                data.push({
+                    title,
+                    description,
+                    privacyStatus,
+                    items: ( await plItems.list(id) ).reduce(
+                        (acc, {items}) => items.reduce(
+                            ( acc, {contentDetails: { videoId }} ) => {
+                              acc.push(videoId);
+                              return acc;
+                            },
+                            acc
+                        ),
+                        []
+                    )
+                });
+            }
+        }
+    
+        db.set(
+            'playlists',
+            data
+        ).set(
+            'subscriptions',
+            ( await  subscr.list() ).reduce(
+                (acc, {items}) => items.reduce(
+                    (acc, { snippet: {title, resourceId} }) => {
+                        acc.push({...resourceId, title});
+                        return acc;
+                    },
+                    acc
+                ),            
+                []
+            )
+        );
+
+        return this;
+    }    
 }
 
-export { ytBackup }
+class YTBackupFactory {
+    ytServiceClasses;
+    YTBackup;
 
+    /**
+     * 
+     * @param {object} ytServiceClasses
+     * @param {class} ytServiceClasses.Playlists
+     * @param {class} ytServiceClasses.Plitems
+     * @param {class} ytServiceClasses.Subscriptions
+     * @param {class} YTBackup 
+     */
+    constructor(ytServiceClasses, YTBackup) {
+        this.ytServiceClasses = ytServiceClasses;
+        this.YTBackup = YTBackup;
+    }
+
+    /**
+     * @param {object} options
+     * @param {Array<string>} options.scopes 
+     * example: 
+     * [
+     *  "https://www.googleapis.com/auth/youtube.readonly",
+     *  'https://www.googleapis.com/auth/youtube.force-ssl'
+     * ]
+     * @param {string} options.tokenDir The directory where the token should be stored
+     * @param {string} options.tokenFN Token file name
+     * @param {string} options.clientSecretDir The directory where the client_secret.json file is stored
+     * @returns {YTBackup}
+     */
+    create(options) {
+        return new this.YTBackup(this.ytServiceClasses, options);
+    }
+}
+
+const ytBackupFactory = new YTBackupFactory({
+    Playlists: YTubePl,
+    Plitems: YTubePlItems,
+    Subscriptions: YTubeSubscr
+});
+
+export {
+    YTBackup,
+    YTBackupFactory,
+    ytBackupFactory
+}

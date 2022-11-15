@@ -2,9 +2,8 @@
 import { Worker } from 'worker_threads';
 import path from 'path';
 import {
-    cliRunnerFactory,    
-    ytBackup,
-    ytRestore,
+    cliRunnerFactory,
+    ytBackupFactory,    
     JsonDB,
     START_DIR
 } from '../index.js';
@@ -23,7 +22,11 @@ import {
  * @param {Object} options.ytAPI.clientSecretFN
  */
 function runner(options) {
-    const db =  new JsonDB();
+    const 
+        db =  new JsonDB(),
+        ytBackup = ytBackupFactory.create(options.ytAPI)
+    ;
+    
     db.load(options.dbPath);
 
     const cliRunner = cliRunnerFactory.runner("yt-backup", "RUNNER>")
@@ -87,16 +90,30 @@ function runner(options) {
                 }            
             }
 
-        ).set(//REFACTOR IT
+        ).set(//TEST IT
             "backup",
             "Get data (playlists, playlist items, subscriptions) and store them in the database.",
-            async () => await ytBackup(options.ytAPI, options.dbPath)
+            async () => await ytBackup.backup(db)
             
-        ).set(//REFACTOR IT
+        ).set(//TEST IT
             "restore",
             "Restore data (playlists, playlist items, subscriptions)",
-            async () => await ytRestore(options.ytAPI, options.dbPath)
-        ) //IMPLEMENT: save and load methods
+            async () => await ytBackup.restore(db)
+
+        ).set(
+            "save",
+            "Save db. save [path]",
+            async ([path]) => {
+                await db.save(path);
+            }
+
+        ).set(
+            "load",
+            "Load db. load [path]",
+            async ([path]) => {
+                await load(path);
+            }
+        ) 
     ;
 
     cliRunner.start();
