@@ -89,7 +89,7 @@ function runner(options) {
                 }            
             }
 
-        ).set(//TEST IT
+        ).set(
             "backup",
             "Get data (playlists, playlist items, subscriptions) and store them in the database.",
             async () => await ytBackup.backup(db)
@@ -102,15 +102,15 @@ function runner(options) {
         ).set(
             "save",
             "Save db. save [path]",
-            async ([path]) => {
-                await db.save(path);
+            async (path) => {
+                await db.save(...path);
             }
 
         ).set(
             "load",
             "Load db. load [path]",
-            async ([path]) => {
-                await load(path);
+            async (path) => {
+                await db.load(...path);
             }
 
         ).set(

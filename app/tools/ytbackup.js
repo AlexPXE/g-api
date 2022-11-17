@@ -34,7 +34,7 @@ class YTBackup extends YouTubeAPI{
 
         this.pl = new ytServiceClasses.Playlists(this);
         this.plItems = new ytServiceClasses.Plitems(this);
-        this.subscriptions = new ytServiceClasses.Subscriptions(this);        
+        this.subscr = new ytServiceClasses.Subscriptions(this);        
     }
 
     /**
@@ -63,7 +63,7 @@ class YTBackup extends YouTubeAPI{
             await subscr.insert(channelId);
         }
 
-        return db;
+        return this;
     }
 
     /**
@@ -122,7 +122,6 @@ class YTBackup extends YouTubeAPI{
                 []
             )
         );
-
         return this;
     }    
 }
