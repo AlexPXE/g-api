@@ -100,6 +100,13 @@ function runner(options) {
             async () => await ytBackup.restore(db)
 
         ).set(
+            "clearpls",
+            "Removes all playlists",
+            async () => {
+                await ytBackup.clearPls();
+            }
+            
+        ).set(
             "save",
             "Save db. save [path]",
             async (path) => {

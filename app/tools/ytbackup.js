@@ -123,6 +123,17 @@ class YTBackup extends YouTubeAPI{
             )
         );
         return this;
+    }
+
+    async clearPls() {
+        const {pl} = this;
+
+        for (let {items} of await pl.list() ) {
+            for (let item of items) {
+                const { id } = item;
+                await pl.delete(id);
+            }
+        }
     }    
 }
 

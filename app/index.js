@@ -1,6 +1,7 @@
 "use strict";
 import path from 'path';
 import { fileURLToPath } from 'url';
+export const START_DIR = path.dirname( fileURLToPath( import.meta.url) );
 export {    
     cliRunnerFactory,
     YTubePl,
@@ -18,7 +19,7 @@ export {
     ytBackupFactory
 } from './tools/ytbackup.js';
 export { runner as exec } from './exec/exec.js';
-export const START_DIR = path.dirname( fileURLToPath( import.meta.url) );
+
 
 
 
